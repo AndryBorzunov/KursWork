@@ -32,12 +32,17 @@ def greeting_generate() -> str:
 
 
 def data_select(data_input: list[dict], time_param: str) -> list[dict]:
+    """
+    Выборка данных по диапазону времени операции
+    :param data_input: все транзакции
+    :param time_param: время, по которое необходимо выбрать данные
+    :return: отфильтрованные по дате операции транзакции
+    """
+
     df = pd.DataFrame(data_input)
 
-    # Выбираем данные из диапазона времени
-
     df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True)
-    time_param = datetime. strptime(time_param, "%Y.%m.%d %H:%M:%S")
+    time_param = datetime.strptime(time_param, "%Y.%m.%d %H:%M:%S")
     time_param_start = time_param.replace(day=1, hour=0, minute=0, second=0)
 
     df_filtered = df[(df["Дата операции"] >= time_param_start) & (df["Дата операции"] <= time_param)]
@@ -46,6 +51,11 @@ def data_select(data_input: list[dict], time_param: str) -> list[dict]:
 
 
 def get_stocks(param_in: list[str]) -> list[dict]:
+    """
+    Функция запрашивает стоимость акций у стороннего сервиса через API
+    :param param_in: список наименований акций
+    :return: результат запроса
+    """
     url = "https://www.alphavantage.co/query" #?function=GLOBAL_QUOTE&symbol=INTC&apikey=4ZBM2P5DRG9SRY0T"  #"https://api.api-ninjas.com/v1/sp500"
 
     result = []
@@ -63,7 +73,11 @@ def get_stocks(param_in: list[str]) -> list[dict]:
 
 
 def get_currency(param_in: list[str]) -> list[dict]:
-
+    """
+    Функция запрашивает стоимость валют у стороннего сервиса через API
+    :param param_in: список валют, стоимость которых надо узнать
+    :return: результат запроса
+    """
     amount = 1
     url = "https://api.apilayer.com/exchangerates_data/convert"
     headers = {"apikey": API_KEY_CR}
@@ -81,10 +95,13 @@ def get_currency(param_in: list[str]) -> list[dict]:
 
 
 def get_cards(transactions: list[dict]) -> list[dict]:
+    """
+    Функция анализирует операции по каждой карте - вычисляет сумму всех операций по карте и кэшбэк
+    :param transactions: транзакции
+    :return: результат обработки данных
+    """
 
-    #print(transactions)
     cards = get_fild_values_unique(transactions, "Номер карты")
-    #print(cards)
 
     df = pd.DataFrame(transactions)
 
@@ -102,6 +119,11 @@ def get_cards(transactions: list[dict]) -> list[dict]:
 
 
 def get_top_transactions(transactions: list[dict]) -> list[dict]:
+    """
+    Функция определяет 5 транзакций с самой большой суммой операции
+    :param transactions: транзакции
+    :return: результат обработки данных
+    """
     df = pd.DataFrame(transactions)
     df_ok = df[df["Статус"] == "OK"]
 
@@ -123,6 +145,14 @@ def get_top_transactions(transactions: list[dict]) -> list[dict]:
 
 
 def create_json(greeting_str: str, transactions: list[dict], currency_rates: list[dict], stock_prices: list[dict]) -> list[Any]:
+    """
+    Функция формирует данные для передачи в json формате
+    :param greeting_str: строка приветствия
+    :param transactions: данные о транзакциях
+    :param currency_rates: стоимость валют
+    :param stock_prices: стоимость акций
+    :return:
+    """
     result = []
     result_dict = dict()
     result_dict["greeting"] = greeting_str

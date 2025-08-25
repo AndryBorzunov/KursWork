@@ -199,3 +199,4 @@ cython_debug/
 logs
 
 mylog.txt
+report.xlsx
