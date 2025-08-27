@@ -33,4 +33,4 @@
 
 #### Отчет записывается в xlsx-файл
 
-[Результаты тестирования](https://htmlpreview.github.io/?https://github.com/AndryBorzunov/MyProject/blob/feature/Homework_13_2/htmlcov/index.html)
+[Результаты тестирования](https://htmlpreview.github.io/?https://github.com/AndryBorzunov/KursWork/blob/feature/work/htmlcov/index.html)
