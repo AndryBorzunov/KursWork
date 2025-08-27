@@ -1,33 +1,44 @@
+import json
+import logging
 import os
-import requests
 from datetime import datetime
-import pandas as pd
-from utils import get_fild_values_unique
-from typing import Any
 
+import pandas as pd
+import requests
 from dotenv import load_dotenv
-from pandas.core.interchange.dataframe_protocol import DataFrame
+from typing import Any, Dict
+
+from utils import get_fild_values_unique
+
+logger = logging.getLogger(__name__)
+file_handler = logging.FileHandler("logs/views.log", "w", encoding="utf-8")
+file_formatter = logging.Formatter("%(asctime)s : %(filename)s : %(levelname)s: %(message)s")
+file_handler.setFormatter(file_formatter)
+logger.addHandler(file_handler)
+logger.setLevel(logging.DEBUG)
 
 load_dotenv()
 API_KEY = os.getenv("API_KEY")
 API_KEY_CR = os.getenv("API_KEY_CR")
 
 
-def greeting_generate() -> str:
-    """ Функция возвращает строку приветствия в зависимости от текущего времени """
+def greeting_generate(hour_in: int) -> str:
+    """Функция возвращает строку приветствия в зависимости от текущего времени"""
 
-    time_current = datetime.now()
-
-    if 0 <= time_current.hour < 6:
+    if 0 <= hour_in < 6:
+        logger.info("greeting: 'Доброй ночи'")
         return "Доброй ночи"
 
-    elif 6 <= time_current.hour < 12:
+    elif 6 <= hour_in < 12:
+        logger.info("greeting: 'Доброе утро'")
         return "Доброе утро"
 
-    elif 12 <= time_current.hour < 18:
+    elif 12 <= hour_in < 18:
+        logger.info("greeting: 'Добрый день'")
         return "Добрый день"
 
     else:
+        logger.info("greeting: 'Добрый вечер'")
         return "Добрый вечер"
 
 
@@ -42,59 +53,63 @@ def data_select(data_input: list[dict], time_param: str) -> list[dict]:
     df = pd.DataFrame(data_input)
 
     df["Дата операции"] = pd.to_datetime(df["Дата операции"], dayfirst=True)
-    time_param = datetime.strptime(time_param, "%Y.%m.%d %H:%M:%S")
-    time_param_start = time_param.replace(day=1, hour=0, minute=0, second=0)
 
-    df_filtered = df[(df["Дата операции"] >= time_param_start) & (df["Дата операции"] <= time_param)]
+    time_param_end = datetime.strptime(time_param, "%Y.%m.%d %H:%M:%S")
+    time_param_start = time_param_end.replace(day=1, hour=0, minute=0, second=0)
+
+    df_filtered = df[(df["Дата операции"] >= time_param_start) & (df["Дата операции"] <= time_param_end)]
+
+    logger.info(f"Время для запроса: {time_param}, количество записей: {df_filtered.shape}")
 
     return df_filtered.to_dict(orient="records")
 
 
-def get_stocks(param_in: list[str]) -> list[dict]:
+def get_stock(stock: str) -> dict:
     """
     Функция запрашивает стоимость акций у стороннего сервиса через API
-    :param param_in: список наименований акций
+    :param stock: наименование акции
     :return: результат запроса
     """
-    url = "https://www.alphavantage.co/query" #?function=GLOBAL_QUOTE&symbol=INTC&apikey=4ZBM2P5DRG9SRY0T"  #"https://api.api-ninjas.com/v1/sp500"
+    url = "https://www.alphavantage.co/query"  # "https://api.api-ninjas.com/v1/sp500"
 
-    result = []
-    for param in param_in:
-        params = {"function": "GLOBAL_QUOTE", "symbol": param, "apikey": API_KEY}
-        #headers = {"X-Api-Key": API_KEY}
-        response = requests.get(url, params)
-        # if (response.status_code == 200):
-        data = response.json()
-        if "Global Quote" in data:
-            stock_price = {"stock": data["Global Quote"]["01. symbol"], "price": data["Global Quote"]["05. price"]}
-            result.append(stock_price)
+    params = {"function": "GLOBAL_QUOTE", "symbol": stock, "apikey": API_KEY}
+    # headers = {"X-Api-Key": API_KEY}
+    response = requests.get(url, params)
+    # if (response.status_code == 200):
+    logger.info(f"Результат запроса {stock}: {response.status_code}")
+    data = response.json()
+    if "Global Quote" in data:
+        stock_price = {"stock": data["Global Quote"]["01. symbol"], "price": data["Global Quote"]["05. price"]}
+        return stock_price
+    else:
+        logger.error(data)
+        return {}
 
-    return result
 
-
-def get_currency(param_in: list[str]) -> list[dict]:
+def get_currency(currency_code: Any) -> dict:
     """
     Функция запрашивает стоимость валют у стороннего сервиса через API
-    :param param_in: список валют, стоимость которых надо узнать
+    :param currency_code: список валют, стоимость которых надо узнать
     :return: результат запроса
     """
-    amount = 1
+
     url = "https://api.apilayer.com/exchangerates_data/convert"
     headers = {"apikey": API_KEY_CR}
 
-    result = []
-    for param in param_in:
-        currency_code = param
-        params = {"to": "RUB", "from": currency_code, "amount": amount}
-        response = requests.get(url, params, headers=headers)
-        # if (response.status_code == 200):
-        currency_rate = {"currency": response.json()["query"]["from"], "rate": response.json()["info"]["rate"]}
-        result.append(currency_rate)
-        #data = response.json()
-    return result #float(data["result"])
+    params = {"to": "RUB", "from": currency_code, "amount": 1}
+    response = requests.get(url, params=params, headers=headers)
+    data = response.json()
+    # if response.status_code != 200:
+    #    logger.error(f"Ошибка запроса {currency_code}: {response.status_code}")
+    #    return {}
+    # else:
+    currency_rate = {"currency": data["query"]["from"], "rate": data["info"]["rate"]}
+    logger.info(f"Результат запроса {currency_code}: {currency_rate}")
+
+    return currency_rate
 
 
-def get_cards(transactions: list[dict]) -> list[dict]:
+def get_cards(transactions: list[dict]) -> list[Dict[str, Any]]:
     """
     Функция анализирует операции по каждой карте - вычисляет сумму всех операций по карте и кэшбэк
     :param transactions: транзакции
@@ -102,6 +117,8 @@ def get_cards(transactions: list[dict]) -> list[dict]:
     """
 
     cards = get_fild_values_unique(transactions, "Номер карты")
+
+    logger.info(f"Список используемых карт {cards}")
 
     df = pd.DataFrame(transactions)
 
@@ -127,10 +144,7 @@ def get_top_transactions(transactions: list[dict]) -> list[dict]:
     df = pd.DataFrame(transactions)
     df_ok = df[df["Статус"] == "OK"]
 
-    #top_5_transactions = df_ok["Сумма операции"].abs().nlargest(5, keep="all")
-
     top_5_transactions = df_ok.nlargest(5, ["Сумма операции с округлением"])
-    #print(top_5_transactions)
 
     top_transactions = []
     for index, row in top_5_transactions.iterrows():
@@ -141,29 +155,47 @@ def get_top_transactions(transactions: list[dict]) -> list[dict]:
         transactions_dict["description"] = row["Описание"]
         top_transactions.append(transactions_dict)
 
+    print(top_transactions)
+
     return top_transactions
 
 
-def create_json(greeting_str: str, transactions: list[dict], currency_rates: list[dict], stock_prices: list[dict]) -> list[Any]:
+def create_json(transactions: list[dict], params: dict) -> str:
     """
     Функция формирует данные для передачи в json формате
-    :param greeting_str: строка приветствия
     :param transactions: данные о транзакциях
-    :param currency_rates: стоимость валют
-    :param stock_prices: стоимость акций
-    :return:
+    :param params: стоимость валют
+    :return: json строка
     """
-    result = []
-    result_dict = dict()
-    result_dict["greeting"] = greeting_str
-    #result.append(greeting_dict)
 
-    #cards_dict = {"cards": cards_list}
-    result_dict["cards"] = get_cards(transactions)
-    result_dict["top_transactions"] = get_top_transactions(transactions)
-    result_dict["currency_rates"] = currency_rates
-    result_dict["stock_prices"] = stock_prices
+    result_dict = {}
 
-    result.append(result_dict)
+    # Приветствие
+    time_current = datetime.now()
+    result_dict["greeting"] = greeting_generate(time_current.hour)
 
-    return result
+    # Сумма операций по картам
+    result_dict["cards"] = str(get_cards(transactions))
+
+    # Пять операций с самыми большими суммами
+    result_dict["top_transactions"] = str(get_top_transactions(transactions))
+
+    # Курсы валют
+    currency_rates = []
+    for currency in params["user_currencies"]:
+        currency_rate = get_currency(currency)
+        currency_rates.append(currency_rate)
+
+    result_dict["currency_rates"] = str(currency_rates)
+
+    # Стоимость акций на S&P500
+    stock_prices = []
+    for stock in params["user_stocks"]:
+        stock_price = get_stock(stock)
+        stock_prices.append(stock_price)
+
+    result_dict["stock_prices"] = str(stock_prices)
+
+    logger.info(f"Сформированный json: {result_dict}")
+
+    return json.dumps(result_dict)

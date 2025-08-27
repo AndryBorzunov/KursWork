@@ -1,44 +1,27 @@
-from typing import Any, Dict, Hashable, List
 import json
+from functools import wraps
+from typing import Any, Dict, Hashable, List
 
 import pandas as pd
 
-from functools import wraps
-
 
 def report_to_xlsx(filename: str | None = None) -> Any:
-    """Декоратор для записи логов выполнения функции"""
+    """Декоратор для записи отчета в файл"""
 
     def wrapper(function: Any) -> Any:
         """Обертка для функции"""
 
         @wraps(function)
         def inner(*args: Any, **kwargs: Any) -> Any:
-            """Внутренняя функция, реализующая запись лога"""
+            """Внутренняя функция, реализующая запись отчета"""
 
-            result = None
-            try:
-                result = function(*args, **kwargs)
-                df = pd.DataFrame(result)
-                if filename:
-                    df.to_excel(filename, sheet_name="Sheet1", index=False)
-                    #with open(filename, "a", encoding="utf-8") as file:
-                        #file.write(f"INFO: {function.__name__} ok: Inputs: {args[1]}, {args[2]}. Outputs: {result}\n")
-                        #file.write(f"{result}\n")
-                else:
-                    df.to_excel("report.xlsx", sheet_name="Sheet1", index=False)
-                    #print(f"INFO: {function.__name__} ok: Inputs: {args[1]}, {args[2]}. Outputs: {result}")
-                    #print(f"{result}")
-                return result
-            except Exception as e:
-                if filename:
-                    with open(filename, "a", encoding="utf-8") as file:
-                        file.write(
-                            f"ERROR: {function.__name__} error: {e}. Inputs: {args[1]}, {args[2]}. Outputs: {result}\n"
-                        )
-                else:
-                    print(f"ERROR: {function.__name__} error: {e}. Inputs: {args[1]}, {args[2]}. Outputs: {result}")
-                return result
+            result = function(*args, **kwargs)
+            df = pd.DataFrame(result)
+            if filename:
+                df.to_excel(filename, sheet_name="Sheet1", index=False)
+            else:
+                df.to_excel("report.xlsx", sheet_name="Sheet1", index=False)
+            return result
 
         return inner
 
