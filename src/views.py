@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from typing import Any, Dict
 
-from utils import get_fild_values_unique
+from src.utils import get_fild_values_unique
 
 logger = logging.getLogger(__name__)
 file_handler = logging.FileHandler("logs/views.log", "w", encoding="utf-8")
@@ -97,7 +97,7 @@ def get_currency(currency_code: Any) -> dict:
     headers = {"apikey": API_KEY_CR}
 
     params = {"to": "RUB", "from": currency_code, "amount": 1}
-    response = requests.get(url, params=params, headers=headers)
+    response = requests.get(url, params, headers=headers)
     data = response.json()
     # if response.status_code != 200:
     #    logger.error(f"Ошибка запроса {currency_code}: {response.status_code}")
@@ -191,7 +191,7 @@ def create_json(transactions: list[dict], params: dict) -> str:
     # Стоимость акций на S&P500
     stock_prices = []
     for stock in params["user_stocks"]:
-        stock_price = get_stock(stock)
+        stock_price = {} # get_stock(stock)
         stock_prices.append(stock_price)
 
     result_dict["stock_prices"] = str(stock_prices)
