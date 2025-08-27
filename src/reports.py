@@ -4,7 +4,7 @@ from typing import Optional
 
 import pandas as pd
 
-from src.utils import report_to_xlsx
+from utils import report_to_xlsx
 
 logger = logging.getLogger(__name__)
 file_handler = logging.FileHandler("logs/reports.log", "w", encoding="utf-8")

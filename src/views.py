@@ -2,13 +2,13 @@ import json
 import logging
 import os
 from datetime import datetime
+from typing import Any, Dict
 
 import pandas as pd
 import requests
 from dotenv import load_dotenv
-from typing import Any, Dict
 
-from src.utils import get_fild_values_unique
+from utils import get_fild_values_unique
 
 logger = logging.getLogger(__name__)
 file_handler = logging.FileHandler("logs/views.log", "w", encoding="utf-8")
@@ -155,8 +155,6 @@ def get_top_transactions(transactions: list[dict]) -> list[dict]:
         transactions_dict["description"] = row["Описание"]
         top_transactions.append(transactions_dict)
 
-    print(top_transactions)
-
     return top_transactions
 
 
@@ -191,7 +189,7 @@ def create_json(transactions: list[dict], params: dict) -> str:
     # Стоимость акций на S&P500
     stock_prices = []
     for stock in params["user_stocks"]:
-        stock_price = {} # get_stock(stock)
+        stock_price = get_stock(stock)
         stock_prices.append(stock_price)
 
     result_dict["stock_prices"] = str(stock_prices)

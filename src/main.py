@@ -1,10 +1,9 @@
 import pandas as pd
 
-from views import data_select, get_currency, get_stock, greeting_generate, create_json
-from utils import load_data_excel, load_params
-from services import individuals_transfers
 from reports import spending_by_category
-
+from services import individuals_transfers
+from utils import load_data_excel, load_params
+from views import create_json, data_select
 
 data_input = load_data_excel("data/operations.xlsx")
 
@@ -21,7 +20,7 @@ print()
 
 # 2. Сервисы. Поиск переводов физическим лицам
 print("2. Сервисы. Поиск переводов физическим лицам\n")
-print(individuals_transfers(transactions)) #data_input))
+print(individuals_transfers(data_input))
 print()
 
 # 3. Отчеты. Траты по категории
